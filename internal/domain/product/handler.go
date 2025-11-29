@@ -5,26 +5,116 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/euandresimoes/ecom-go/internal/domain/auth"
+	"github.com/euandresimoes/ecom-go/internal/middlewares"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-playground/validator/v10"
 )
 
 type Handler struct {
-	service *Service
+	service   *Service
+	validator *validator.Validate
 }
 
-func NewHandler(service *Service) http.Handler {
-	h := &Handler{service: service}
+func NewHandler(service *Service, validator *validator.Validate, jwt *auth.JWTManager) http.Handler {
+	h := &Handler{service: service, validator: validator}
 
 	r := chi.NewRouter()
 
-	r.Post("/", h.Create)
-	r.Delete("/", h.Delete)
-	r.Patch("/", h.Update)
+	// public routes
 	r.Get("/", h.GetAll)
 	r.Get("/id", h.GetByID)
 	r.Get("/public", h.GetByPublicID)
+	r.Get("/category", h.GetAllCategories)
+
+	// admin protected routes
+	r.Group(func(protected chi.Router) {
+		protected.Use(middlewares.Admin(jwt))
+
+		protected.Post("/", h.Create)
+		protected.Delete("/", h.Delete)
+		protected.Patch("/", h.Update)
+		protected.Post("/category", h.CreateCategory)
+		protected.Delete("/category", h.DeleteCategory)
+	})
 
 	return r
+}
+
+func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) {
+	var data CategoryCreateDto
+
+	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"status": http.StatusBadRequest,
+			"error":  "invalid json",
+		})
+		return
+	}
+
+	if err := h.validator.Struct(&data); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"status": http.StatusBadRequest,
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	category, err := h.service.CreateCategory(&data)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"status": http.StatusBadRequest,
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":  http.StatusCreated,
+		"message": "category created",
+		"data":    category,
+	})
+}
+
+func (h *Handler) GetAllCategories(w http.ResponseWriter, r *http.Request) {
+	categories, err := h.service.GetAllCategories()
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"status": http.StatusBadRequest,
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":  http.StatusOK,
+		"message": "categories found",
+		"data":    categories,
+	})
+}
+
+func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
+	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
+
+	category, err := h.service.DeleteCategory(id)
+	if err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"status": http.StatusBadRequest,
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	json.NewEncoder(w).Encode(map[string]any{
+		"status":  http.StatusOK,
+		"message": "category deleted",
+		"data":    category,
+	})
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
@@ -39,7 +129,16 @@ func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	product, err := h.service.Create(data)
+	if err := h.validator.Struct(&data); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"status": http.StatusBadRequest,
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	product, err := h.service.Create(&data)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{
@@ -89,7 +188,16 @@ func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	product, err := h.service.Update(id, data)
+	if err := h.validator.Struct(&data); err != nil {
+		w.WriteHeader(http.StatusBadRequest)
+		json.NewEncoder(w).Encode(map[string]any{
+			"status": http.StatusBadRequest,
+			"error":  err.Error(),
+		})
+		return
+	}
+
+	product, err := h.service.Update(id, &data)
 	if err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{

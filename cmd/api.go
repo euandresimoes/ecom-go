@@ -6,10 +6,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/euandresimoes/ecom-go/internal/domain/auth"
+	"github.com/euandresimoes/ecom-go/internal/domain/product"
 	"github.com/euandresimoes/ecom-go/internal/middlewares"
-	"github.com/euandresimoes/ecom-go/internal/product"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	"github.com/go-playground/validator/v10"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
 )
@@ -29,16 +31,27 @@ func (api *Api) routes() http.Handler {
 	r.Use(middlewares.JSON)
 
 	// health check endpoint
-	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
+	r.Get("/api/v1/health", func(w http.ResponseWriter, r *http.Request) {
 		json.NewEncoder(w).Encode(map[string]string{
 			"status":  "ok",
 			"message": "all good!",
 		})
 	})
 
+	// utils
+	jwtManager := auth.NewJWTManager(api.jwtSecret, api.jwtExp)
+	validator := validator.New()
+
+	// handlers
+	authRepo := auth.NewRepository(api.db, api.redis, jwtManager)
+	authService := auth.NewService(authRepo)
+	authHandler := auth.NewHandler(authService, validator)
+	r.Mount("/api/v1/auth", authHandler)
+
 	productRepo := product.NewRepository(api.db, api.redis)
 	productService := product.NewService(productRepo)
-	r.Mount("/product", product.NewHandler(productService))
+	productHandler := product.NewHandler(productService, validator, jwtManager)
+	r.Mount("/api/v1/product", productHandler)
 
 	return r
 }
@@ -52,7 +65,9 @@ func (api *Api) Start() {
 }
 
 type Api struct {
-	addr  string
-	db    *pgxpool.Pool
-	redis *redis.Client
+	addr      string
+	db        *pgxpool.Pool
+	redis     *redis.Client
+	jwtSecret string
+	jwtExp    time.Duration
 }
