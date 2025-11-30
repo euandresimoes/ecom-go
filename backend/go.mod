@@ -1,4 +1,4 @@
-module github.com/euandresimoes/ecom-go
+module github.com/euandresimoes/ecom-go/backend
 
 go 1.25.3
 

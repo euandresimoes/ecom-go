@@ -6,9 +6,10 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/euandresimoes/ecom-go/internal/domain/auth"
-	"github.com/euandresimoes/ecom-go/internal/domain/product"
-	"github.com/euandresimoes/ecom-go/internal/middlewares"
+	"github.com/euandresimoes/ecom-go/backend/internal/domain/auth"
+	"github.com/euandresimoes/ecom-go/backend/internal/domain/product"
+	"github.com/euandresimoes/ecom-go/backend/internal/infra/security"
+	"github.com/euandresimoes/ecom-go/backend/internal/middlewares"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	"github.com/go-playground/validator/v10"
@@ -39,13 +40,13 @@ func (api *Api) routes() http.Handler {
 	})
 
 	// utils
-	jwtManager := auth.NewJWTManager(api.jwtSecret, api.jwtExp)
+	jwtManager := security.NewJWTManager(api.jwtSecret, api.jwtExp)
 	validator := validator.New()
 
 	// handlers
 	authRepo := auth.NewRepository(api.db, api.redis, jwtManager)
 	authService := auth.NewService(authRepo)
-	authHandler := auth.NewHandler(authService, validator)
+	authHandler := auth.NewHandler(authService, validator, jwtManager)
 	r.Mount("/api/v1/auth", authHandler)
 
 	productRepo := product.NewRepository(api.db, api.redis)

@@ -1,4 +1,4 @@
-package auth
+package models
 
 import (
 	"github.com/jackc/pgx/v5/pgtype"
@@ -23,11 +23,9 @@ type UserModel struct {
 }
 
 type UserPublicModel struct {
-	FirstName string             `json:"first_name"`
-	LastName  string             `json:"last_name"`
-	Email     string             `json:"email"`
-	Role      UserRole           `json:"role"`
-	CreatedAt pgtype.Timestamptz `json:"created_at"`
+	FirstName string `json:"first_name"`
+	LastName  string `json:"last_name"`
+	Email     string `json:"email"`
 }
 
 type UserRegisterModel struct {

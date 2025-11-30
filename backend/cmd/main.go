@@ -5,8 +5,8 @@ import (
 	"os"
 	"time"
 
-	"github.com/euandresimoes/ecom-go/internal/infra/cache"
-	"github.com/euandresimoes/ecom-go/internal/infra/database"
+	"github.com/euandresimoes/ecom-go/backend/internal/infra/cache"
+	"github.com/euandresimoes/ecom-go/backend/internal/infra/database"
 	"github.com/joho/godotenv"
 )
 

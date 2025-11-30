@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/euandresimoes/ecom-go/internal/domain/auth"
+	"github.com/euandresimoes/ecom-go/backend/internal/models"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"golang.org/x/crypto/bcrypt"
 )
@@ -60,7 +60,7 @@ func CreateAdmin(adminPwd string, db *pgxpool.Pool) error {
 	_, err = db.Exec(
 		context.Background(),
 		query,
-		"John", "Doe", "admin@admin.com", hash, auth.RoleAdmin,
+		"John", "Doe", "admin@admin.com", hash, models.RoleAdmin,
 	)
 
 	return err

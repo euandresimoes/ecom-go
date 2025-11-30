@@ -1,16 +1,18 @@
 package middlewares
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"net/http"
 	"strings"
 
-	"github.com/euandresimoes/ecom-go/internal/domain/auth"
+	"github.com/euandresimoes/ecom-go/backend/internal/infra/security"
+	"github.com/euandresimoes/ecom-go/backend/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-func Admin(jwtManager *auth.JWTManager) func(http.Handler) http.Handler {
+func Admin(jwtManager *security.JWTManager) func(http.Handler) http.Handler {
 	return func(next http.Handler) http.Handler {
 		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 			header := r.Header.Get("Authorization")
@@ -53,7 +55,7 @@ func Admin(jwtManager *auth.JWTManager) func(http.Handler) http.Handler {
 				return
 			}
 
-			if role := claims["role"].(string); role != string(auth.RoleAdmin) {
+			if role := claims["role"].(string); role != string(models.RoleAdmin) {
 				log.Printf("role: %v", role)
 				w.WriteHeader(http.StatusUnauthorized)
 				json.NewEncoder(w).Encode(map[string]any{
@@ -63,7 +65,14 @@ func Admin(jwtManager *auth.JWTManager) func(http.Handler) http.Handler {
 				return
 			}
 
-			next.ServeHTTP(w, r)
+			id := claims["id"].(float64)
+			role := claims["role"].(string)
+
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, models.UserIDKey, id)
+			ctx = context.WithValue(ctx, models.UserRoleKey, role)
+
+			next.ServeHTTP(w, r.WithContext(ctx))
 		})
 	}
 }

@@ -5,8 +5,9 @@ import (
 	"net/http"
 	"strconv"
 
-	"github.com/euandresimoes/ecom-go/internal/domain/auth"
-	"github.com/euandresimoes/ecom-go/internal/middlewares"
+	"github.com/euandresimoes/ecom-go/backend/internal/infra/security"
+	"github.com/euandresimoes/ecom-go/backend/internal/middlewares"
+	"github.com/euandresimoes/ecom-go/backend/internal/models"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-playground/validator/v10"
 )
@@ -16,7 +17,7 @@ type Handler struct {
 	validator *validator.Validate
 }
 
-func NewHandler(service *Service, validator *validator.Validate, jwt *auth.JWTManager) http.Handler {
+func NewHandler(service *Service, validator *validator.Validate, jwt *security.JWTManager) http.Handler {
 	h := &Handler{service: service, validator: validator}
 
 	r := chi.NewRouter()
@@ -42,7 +43,7 @@ func NewHandler(service *Service, validator *validator.Validate, jwt *auth.JWTMa
 }
 
 func (h *Handler) CreateCategory(w http.ResponseWriter, r *http.Request) {
-	var data CategoryCreateDto
+	var data models.CategoryCreateDto
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -118,7 +119,7 @@ func (h *Handler) DeleteCategory(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handler) Create(w http.ResponseWriter, r *http.Request) {
-	var data ProductCreateDto
+	var data models.ProductCreateDto
 
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
@@ -178,7 +179,7 @@ func (h *Handler) Delete(w http.ResponseWriter, r *http.Request) {
 func (h *Handler) Update(w http.ResponseWriter, r *http.Request) {
 	id, _ := strconv.Atoi(r.URL.Query().Get("id"))
 
-	var data ProductUpdateDto
+	var data models.ProductUpdateDto
 	if err := json.NewDecoder(r.Body).Decode(&data); err != nil {
 		w.WriteHeader(http.StatusBadRequest)
 		json.NewEncoder(w).Encode(map[string]any{

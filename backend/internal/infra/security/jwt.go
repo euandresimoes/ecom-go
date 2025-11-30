@@ -1,9 +1,10 @@
-package auth
+package security
 
 import (
 	"errors"
 	"time"
 
+	"github.com/euandresimoes/ecom-go/backend/internal/models"
 	"github.com/golang-jwt/jwt/v5"
 )
 
@@ -16,7 +17,7 @@ func NewJWTManager(secret string, expires time.Duration) *JWTManager {
 	return &JWTManager{secret: secret, expires: expires}
 }
 
-func (j *JWTManager) Sign(id int, role UserRole) (string, error) {
+func (j *JWTManager) Sign(id int, role models.UserRole) (string, error) {
 	token := jwt.NewWithClaims(
 		jwt.SigningMethodHS256,
 		jwt.MapClaims{

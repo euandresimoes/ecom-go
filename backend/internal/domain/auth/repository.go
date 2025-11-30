@@ -3,7 +3,11 @@ package auth
 import (
 	"context"
 	"errors"
+	"fmt"
 
+	"github.com/euandresimoes/ecom-go/backend/internal/infra/cache"
+	"github.com/euandresimoes/ecom-go/backend/internal/infra/security"
+	"github.com/euandresimoes/ecom-go/backend/internal/models"
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/redis/go-redis/v9"
@@ -13,14 +17,14 @@ import (
 type Repository struct {
 	db         *pgxpool.Pool
 	redis      *redis.Client
-	jwtManager *JWTManager
+	jwtManager *security.JWTManager
 }
 
-func NewRepository(db *pgxpool.Pool, redis *redis.Client, jwtManager *JWTManager) *Repository {
+func NewRepository(db *pgxpool.Pool, redis *redis.Client, jwtManager *security.JWTManager) *Repository {
 	return &Repository{db: db, redis: redis, jwtManager: jwtManager}
 }
 
-func (r *Repository) Register(data UserRegisterModel) error {
+func (r *Repository) Register(data models.UserRegisterModel) error {
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(data.Password), 10)
 	if err != nil {
 		return err
@@ -60,10 +64,10 @@ func (r *Repository) Register(data UserRegisterModel) error {
 	return err
 }
 
-func (r *Repository) Login(data UserLoginModel) (string, error) {
+func (r *Repository) Login(data models.UserLoginModel) (string, error) {
 	var (
 		id            int
-		role          UserRole
+		role          models.UserRole
 		password_hash string
 	)
 
@@ -95,4 +99,37 @@ func (r *Repository) Login(data UserLoginModel) (string, error) {
 	}
 
 	return r.jwtManager.Sign(id, role)
+}
+
+func (r *Repository) Profile(id float64) (models.UserPublicModel, error) {
+	var u models.UserPublicModel
+
+	redisKey := fmt.Sprintf("users:id:%v", id)
+	cachedProfile, _ := cache.Get[models.UserPublicModel](r.redis, redisKey)
+	if cachedProfile != nil {
+		return *cachedProfile, nil
+	}
+
+	query := `
+		SELECT
+		first_name, last_name, email
+		FROM users
+		WHERE id = $1
+	`
+	err := r.db.QueryRow(
+		context.Background(),
+		query,
+		id,
+	).Scan(
+		&u.FirstName,
+		&u.LastName,
+		&u.Email,
+	)
+	if err != nil {
+		return u, err
+	}
+
+	cache.Set(r.redis, redisKey, &u)
+
+	return u, nil
 }
