@@ -23,7 +23,7 @@ func NewPostgres(url string) (*pgxpool.Pool, error) {
 	return pool, nil
 }
 
-func CreateAdmin(adminPwd string, db *pgxpool.Pool) error {
+func CreateAdmin(adminEmail string, adminPwd string, db *pgxpool.Pool) error {
 	var count int
 
 	query := `
@@ -60,7 +60,7 @@ func CreateAdmin(adminPwd string, db *pgxpool.Pool) error {
 	_, err = db.Exec(
 		context.Background(),
 		query,
-		"John", "Doe", "admin@admin.com", hash, models.RoleAdmin,
+		"John", "Doe", adminEmail, hash, models.RoleAdmin,
 	)
 
 	return err

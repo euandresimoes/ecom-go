@@ -7,43 +7,43 @@ import (
 
 	"github.com/euandresimoes/ecom-go/backend/internal/infra/cache"
 	"github.com/euandresimoes/ecom-go/backend/internal/infra/database"
-	"github.com/joho/godotenv"
 )
 
 func main() {
-	// Load env variables
-	if err := godotenv.Load(); err != nil {
-		log.Fatal("Error loading .env file")
-	}
+	// Load env variables - Dev
+	// if err := godotenv.Load(); err != nil {
+	// 	log.Fatal("Error loading .env file")
+	// }
 
 	envs := map[int]string{
-		0: os.Getenv("API_ADDR"),
-		1: os.Getenv("DATABASE_URL"),
-		2: os.Getenv("ADMIN_PASSWORD"),
-		3: os.Getenv("REDIS_URL"),
-		4: os.Getenv("JWT_SECRET"),
+		0: os.Getenv("ADMIN_EMAIL"),
+		1: os.Getenv("ADMIN_PASSWORD"),
+		2: os.Getenv("API_ADDR"),
+		3: os.Getenv("DATABASE_URL"),
+		4: os.Getenv("REDIS_URL"),
+		5: os.Getenv("JWT_SECRET"),
 	}
 
-	db, err := database.NewPostgres(envs[1])
+	db, err := database.NewPostgres(envs[3])
 	if err != nil {
 		log.Fatalf("An error occurred while trying to connect to postgres: %s", err)
 	}
 
-	err = database.CreateAdmin(envs[2], db)
+	err = database.CreateAdmin(envs[0], envs[1], db)
 	if err != nil {
 		log.Fatalf("An error occurred while trying to create admin user: %s", err)
 	}
 
-	redis, err := cache.NewRedis(envs[3], "")
+	redis, err := cache.NewRedis(envs[4], "")
 	if err != nil {
 		log.Fatalf("An error occurred while trying to connect to redis: %s", err)
 	}
 
 	api := Api{
-		addr:      envs[0],
+		addr:      envs[2],
 		db:        db,
 		redis:     redis,
-		jwtSecret: envs[4],
+		jwtSecret: envs[5],
 		jwtExp:    time.Minute * 5,
 	}
 
